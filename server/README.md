@@ -81,7 +81,7 @@ defense only.
 ## Render deployment
 
 The repository's `render.yaml` defines the `drishti-ai-server` web service:
-it runs from `server/`, runs `npm ci && npm run check`, starts with `npm start`,
+it runs from `server/`, runs `npm ci --include=dev && npm run check`, starts with `npm start`,
 uses `/health`, and binds to `0.0.0.0`. Connect the GitHub repository in Render,
 then create a Blueprint from that file. In Render's environment-variable UI,
 set `GROQ_API_KEY` as a secret. After a Flutter web site is deployed, set

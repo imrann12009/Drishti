@@ -6,7 +6,9 @@ services:
     plan: free
     branch: main
     rootDir: server
-    buildCommand: npm ci && npm run check
+    # NODE_ENV=production omits devDependencies by default, while TypeScript
+    # checking needs @types/* packages. Install them during build only.
+    buildCommand: npm ci --include=dev && npm run check
     startCommand: npm start
     healthCheckPath: /health
     autoDeployTrigger: commit

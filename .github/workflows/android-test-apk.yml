@@ -1,0 +1,29 @@
+name: Publish Android test APK
+
+on:
+  push:
+    tags: ['v*-debug']
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: >-
+          flutter build apk --debug
+          --dart-define=DRISHTI_CHAT_BASE_URL=https://drishti12.onrender.com
+      - uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          name: Drishti Android test build
+          body: |
+            Debug-signed Android test build. It is not a production release.
+            Install only for testing. The AI backend requires internet access.
+          files: build/app/outputs/flutter-apk/app-debug.apk

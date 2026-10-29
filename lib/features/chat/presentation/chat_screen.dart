@@ -302,8 +302,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         final message = _messages[index];
         return _MessageBubble(
             message: message,
+            speaking: _speaking,
             onSpeak: message.author == ChatAuthor.assistant
                 ? () => _speak(message.text)
+                : null,
+            onStop: message.author == ChatAuthor.assistant && _speaking
+                ? _stopSpeaking
                 : null);
       },
     );
@@ -475,9 +479,16 @@ class _Header extends StatelessWidget {
 }
 
 class _MessageBubble extends StatelessWidget {
-  const _MessageBubble({required this.message, this.onSpeak});
+  const _MessageBubble({
+    required this.message,
+    required this.speaking,
+    this.onSpeak,
+    this.onStop,
+  });
   final ChatMessage message;
+  final bool speaking;
   final VoidCallback? onSpeak;
+  final VoidCallback? onStop;
   @override
   Widget build(BuildContext context) {
     final user = message.author == ChatAuthor.user;
@@ -507,12 +518,30 @@ class _MessageBubble extends StatelessWidget {
                     fontSize: 16,
                     height: 1.4)),
             if (onSpeak != null)
-              Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                      onPressed: onSpeak,
-                      icon: const Icon(Icons.volume_up_outlined),
-                      label: const Text('শুনুন'))),
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    Semantics(
+                      button: true,
+                      label: 'Drishti AI-এর উত্তর শুনুন',
+                      child: FilledButton.tonalIcon(
+                        onPressed: speaking ? null : onSpeak,
+                        icon: const Icon(Icons.volume_up_outlined),
+                        label: const Text('উত্তর শুনুন'),
+                      ),
+                    ),
+                    if (onStop != null)
+                      OutlinedButton.icon(
+                        onPressed: onStop,
+                        icon: const Icon(Icons.stop_circle_outlined),
+                        label: const Text('থামান'),
+                      ),
+                  ],
+                ),
+              ),
           ]),
         ),
       ),

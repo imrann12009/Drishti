@@ -10,7 +10,9 @@ import { GroqResponseGenerator } from './chat.js';
 dotenv.config({ path: new URL('../.env', import.meta.url) });
 
 const port = Number(process.env.PORT ?? 8788);
-const host = process.env.HOST ?? '127.0.0.1';
+// Render (and other managed hosts) must accept connections outside the
+// container. Local development remains loopback-only unless HOST is set.
+const host = process.env.HOST ?? (process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1');
 const model = process.env.GROQ_MODEL ?? 'llama-3.3-70b-versatile';
 const allowedOrigins = (process.env.CORS_ORIGINS ?? '').split(',').map((value) => value.trim()).filter(Boolean);
 const apiKey = process.env.GROQ_API_KEY;

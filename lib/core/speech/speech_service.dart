@@ -52,16 +52,24 @@ final class FlutterTtsSpeechService implements SpeechService {
     // On browsers the system voice list may arrive after the first user tap.
     // Retry briefly before reporting that a language is unavailable.
     final supported = await _languageIsAvailable(locale);
-    if (supported != true) {
+    // Mobile browsers sometimes do not enumerate Bengali voices even though
+    // the browser can synthesize speech after a user gesture. Give web
+    // playback a chance; speak() still fails closed if the browser rejects it.
+    if (supported != true && !kIsWeb) {
       _status = SpeechStatus.unavailable;
       return _status;
     }
-    await _engine.setLanguage(locale);
-    await _engine.setSpeechRate(_rate);
-    await _engine.setVolume(_volume);
-    await _engine.awaitSpeakCompletion(true);
-    _status = SpeechStatus.ready;
-    return _status;
+    try {
+      await _engine.setLanguage(locale);
+      await _engine.setSpeechRate(_rate);
+      await _engine.setVolume(_volume);
+      await _engine.awaitSpeakCompletion(true);
+      _status = SpeechStatus.ready;
+      return _status;
+    } on Object {
+      _status = SpeechStatus.unavailable;
+      return _status;
+    }
   }
 
   Future<bool> _languageIsAvailable(String locale) async {
@@ -88,13 +96,18 @@ final class FlutterTtsSpeechService implements SpeechService {
           'Bengali TTS is not installed or available.');
     }
     _status = SpeechStatus.speaking;
-    final result = await _engine.speak(message.text);
-    if (result == 0) {
-      _status = SpeechStatus.unavailable;
-      throw const SpeechUnavailableException(
-          'The platform TTS engine rejected speech.');
+    try {
+      final result = await _engine.speak(message.text);
+      if (result != 0) {
+        _status = SpeechStatus.ready;
+        return;
+      }
+    } on Object {
+      // Normalize browser and platform engine failures for the UI.
     }
-    _status = SpeechStatus.ready;
+    _status = SpeechStatus.unavailable;
+    throw const SpeechUnavailableException(
+        'The platform TTS engine rejected speech.');
   }
 
   @override

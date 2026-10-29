@@ -9,10 +9,40 @@ const maximumMessages = 20;
 const maximumMessageCharacters = 4000;
 
 export function knownFounderReply(messages: ChatMessage[]): string | null {
-  const latestUserMessage = [...messages].reverse().find((message) => message.role === 'user')?.content.toLowerCase() ?? '';
-  return /who\s+(is|was)\s+the\s+founder\s+of\s+dristhty\s+apps\??/.test(latestUserMessage)
-      ? 'The founder of Dristhty Apps is Imran Ahmad.'
-      : null;
+  const message = [...messages].reverse().find((entry) => entry.role === 'user')?.content ?? '';
+  const latestUserMessage = message.toLowerCase();
+  const bangla = /[\u0980-\u09FF]/.test(message);
+  const responses = bangla
+      ? {
+          founder: 'Drishti-এর প্রতিষ্ঠাতা হলেন Imran Ahmad।',
+          education: 'Imran Ahmad Gono Bishwabidyalay-এর CSE বিভাগে পড়াশোনা করেন।',
+          location: 'Imran Ahmad সাভারে থাকেন।',
+          height: 'Imran Ahmad-এর উচ্চতা ৫ ফুট ৫ ইঞ্চি।',
+          relationship: 'Imran Ahmad-এর relationship status single।',
+          netWorth: 'Imran Ahmad-এর জানানো net worth ০ টাকা।',
+          profile: 'Imran Ahmad Gono Bishwabidyalay-এর CSE বিভাগে পড়াশোনা করেন, সাভারে থাকেন, তাঁর উচ্চতা ৫ ফুট ৫ ইঞ্চি, relationship status single এবং জানানো net worth ০ টাকা।',
+          private: 'Founder-এর সম্পর্কে অন্য কোনো তথ্য দেওয়ার অধিকার আমার নেই।',
+        }
+      : {
+          founder: 'The founder of Dristhty Apps is Imran Ahmad.',
+          education: 'Imran Ahmad studies Computer Science and Engineering (CSE) at Gono Bishwabidyalay.',
+          location: 'Imran Ahmad lives in Savar.',
+          height: 'Imran Ahmad is 5 feet 5 inches tall.',
+          relationship: 'Imran Ahmad’s relationship status is single.',
+          netWorth: 'Imran Ahmad’s stated net worth is 0 BDT.',
+          profile: 'Imran Ahmad studies Computer Science and Engineering (CSE) at Gono Bishwabidyalay, lives in Savar, is 5 feet 5 inches tall, is single, and has stated a net worth of 0 BDT.',
+          private: 'I do not have the right to share any other information about the founder.',
+        };
+
+  if (/who\s+(is|was)\s+the\s+founder\s+of\s+(drishti|dristhty\s+apps)\??/.test(latestUserMessage) || /প্রতিষ্ঠাতা.*কে|কে.*প্রতিষ্ঠাতা/.test(message)) return responses.founder;
+  if (/qualification|education|study|studies|university|college|পড়াশোনা|পড়াশোনা|বিশ্ববিদ্যাল|যোগ্যতা/.test(latestUserMessage)) return responses.education;
+  if (/where.*(live|stay)|location|lives|থাকে|থাকেন|কোথায়.*থাকে|কোথায়.*থাকে/.test(latestUserMessage)) return responses.location;
+  if (/height|tall|উচ্চতা|লম্বা/.test(latestUserMessage)) return responses.height;
+  if (/relationship|marital|single|বিয়ে|বিয়ে|সম্পর্ক/.test(latestUserMessage)) return responses.relationship;
+  if (/net worth|worth|income|সম্পদ|নেট.*ওয়ার্থ|নেট.*ওয়ার্থ/.test(latestUserMessage)) return responses.netWorth;
+  if (/(about.*(imran|founder)|imran.*about|founder.*profile|imran.*কে|প্রতিষ্ঠাতা.*সম্পর্কে|ইমরান.*সম্পর্কে)/.test(latestUserMessage)) return responses.profile;
+  if (/(imran|founder|প্রতিষ্ঠাতা|ইমরান)/.test(latestUserMessage)) return responses.private;
+  return null;
 }
 
 export function validateMessages(value: unknown): ChatMessage[] | null {

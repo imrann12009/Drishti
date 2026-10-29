@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/persistence/preferences_repository.dart';
@@ -34,6 +35,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   bool _speaking = false;
   bool _autoRead = false;
   bool _voiceMode = false;
+  AppLanguage _voiceLanguage = AppLanguage.bengali;
   String? _error;
   String? _retryText;
 
@@ -60,7 +62,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
-  bool get _usesBangla => RegExp(r'[\u0980-\u09FF]').hasMatch(_input.text);
+  String get _recognitionLocaleId {
+    final language = _input.text.trim().isEmpty
+        ? _voiceLanguage
+        : RegExp(r'[\u0980-\u09FF]').hasMatch(_input.text)
+            ? AppLanguage.bengali
+            : AppLanguage.english;
+    if (kIsWeb) return language == AppLanguage.bengali ? 'bn-BD' : 'en-US';
+    return language == AppLanguage.bengali ? 'bn_BD' : 'en_US';
+  }
 
   Future<void> _send([String? supplied]) async {
     final text = (supplied ?? _input.text).trim();
@@ -131,7 +141,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     });
     try {
       await _voice.start(
-        localeId: _usesBangla ? 'bn_BD' : 'en_US',
+        localeId: _recognitionLocaleId,
         onResult: (words, isFinal) {
           if (!mounted) return;
           _input.value = TextEditingValue(
@@ -154,10 +164,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   void _voiceError(String error) {
+    final isNetworkError = error.toLowerCase().contains('network');
     if (mounted) {
       setState(() {
         _listening = false;
-        _error = 'কথা শনাক্ত করা যায়নি: $error';
+        _error = isNetworkError
+            ? 'Browser speech service-এ network সমস্যা হয়েছে। internet চালু আছে কি না দেখুন, Chrome-এর microphone permission Allow করুন, তারপর আবার চেষ্টা করুন।'
+            : 'কথা শনাক্ত করা যায়নি: $error';
       });
     }
   }
@@ -322,6 +335,23 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   unawaited(_stopListening());
                 }
               },
+            ),
+            SegmentedButton<AppLanguage>(
+              segments: const [
+                ButtonSegment(
+                  value: AppLanguage.bengali,
+                  label: Text('বাংলা'),
+                  icon: Icon(Icons.language),
+                ),
+                ButtonSegment(
+                  value: AppLanguage.english,
+                  label: Text('English'),
+                  icon: Icon(Icons.language),
+                ),
+              ],
+              selected: {_voiceLanguage},
+              onSelectionChanged: (value) =>
+                  setState(() => _voiceLanguage = value.first),
             ),
             if (_speaking)
               TextButton.icon(

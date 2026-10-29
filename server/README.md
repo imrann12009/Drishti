@@ -86,6 +86,9 @@ uses `/health`, and binds to `0.0.0.0`. Connect the GitHub repository in Render,
 then create a Blueprint from that file. In Render's environment-variable UI,
 set `GROQ_API_KEY` as a secret. After a Flutter web site is deployed, set
 `CORS_ORIGINS` to its exact HTTPS origin, for example `https://app.example.com`.
+The default public web host for this repository is
+`https://imrann12009.github.io`; set the variable explicitly if you use a
+different host.
 Neither value belongs in GitHub or the mobile app.
 
 References: [Groq API reference](https://console.groq.com/docs/api-reference),

@@ -14,7 +14,13 @@ const port = Number(process.env.PORT ?? 8788);
 // container. Local development remains loopback-only unless HOST is set.
 const host = process.env.HOST ?? (process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1');
 const model = process.env.GROQ_MODEL ?? 'llama-3.3-70b-versatile';
-const allowedOrigins = (process.env.CORS_ORIGINS ?? '').split(',').map((value) => value.trim()).filter(Boolean);
+// GitHub Pages is this project's public web host. Deployments on another
+// domain must set CORS_ORIGINS to that exact HTTPS origin instead.
+const defaultProductionOrigin = process.env.NODE_ENV === 'production'
+  ? 'https://imrann12009.github.io'
+  : '';
+const originsValue = process.env.CORS_ORIGINS?.trim() || defaultProductionOrigin;
+const allowedOrigins = originsValue.split(',').map((value) => value.trim()).filter(Boolean);
 const apiKey = process.env.GROQ_API_KEY;
 const generator = apiKey
   ? new GroqResponseGenerator(new Groq({ apiKey, timeout: 25_000, maxRetries: 0 }), model)

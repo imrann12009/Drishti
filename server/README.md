@@ -78,5 +78,15 @@ For production, add HTTPS, real user authentication, a shared rate limiter/WAF,
 monitoring, and a secret manager; its in-memory rate limiter is development
 defense only.
 
+## Render deployment
+
+The repository's `render.yaml` defines the `drishti-ai-server` web service:
+it runs from `server/`, runs `npm ci && npm run check`, starts with `npm start`,
+uses `/health`, and binds to `0.0.0.0`. Connect the GitHub repository in Render,
+then create a Blueprint from that file. In Render's environment-variable UI,
+set `GROQ_API_KEY` as a secret. After a Flutter web site is deployed, set
+`CORS_ORIGINS` to its exact HTTPS origin, for example `https://app.example.com`.
+Neither value belongs in GitHub or the mobile app.
+
 References: [Groq API reference](https://console.groq.com/docs/api-reference),
 [Groq supported models](https://console.groq.com/docs/models).

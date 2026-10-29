@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 import '../persistence/preferences_repository.dart';
@@ -37,7 +38,8 @@ abstract interface class SpeechService {
 /// Android/iOS platform TTS adapter. Bengali output depends on the device's
 /// installed voice engine and must be verified on each target device.
 final class FlutterTtsSpeechService implements SpeechService {
-  FlutterTtsSpeechService({FlutterTts? engine}) : _engine = engine ?? FlutterTts();
+  FlutterTtsSpeechService({FlutterTts? engine})
+      : _engine = engine ?? FlutterTts();
 
   final FlutterTts _engine;
   SpeechStatus _status = SpeechStatus.unavailable;
@@ -47,7 +49,9 @@ final class FlutterTtsSpeechService implements SpeechService {
   @override
   Future<SpeechStatus> initialize({required AppLanguage language}) async {
     final locale = language == AppLanguage.bengali ? 'bn-BD' : 'en-US';
-    final supported = await _engine.isLanguageAvailable(locale);
+    // On browsers the system voice list may arrive after the first user tap.
+    // Retry briefly before reporting that a language is unavailable.
+    final supported = await _languageIsAvailable(locale);
     if (supported != true) {
       _status = SpeechStatus.unavailable;
       return _status;
@@ -60,6 +64,16 @@ final class FlutterTtsSpeechService implements SpeechService {
     return _status;
   }
 
+  Future<bool> _languageIsAvailable(String locale) async {
+    final initial = await _engine.isLanguageAvailable(locale);
+    if (initial == true || !kIsWeb) return initial == true;
+    for (var attempt = 0; attempt < 3; attempt++) {
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      if (await _engine.isLanguageAvailable(locale) == true) return true;
+    }
+    return false;
+  }
+
   Future<void> configure({double? rate, double? volume}) async {
     _rate = (rate ?? _rate).clamp(0.1, 1.0).toDouble();
     _volume = (volume ?? _volume).clamp(0.0, 1.0).toDouble();
@@ -70,13 +84,15 @@ final class FlutterTtsSpeechService implements SpeechService {
   @override
   Future<void> speak(SpeechMessage message) async {
     if (_status == SpeechStatus.unavailable) {
-      throw const SpeechUnavailableException('Bengali TTS is not installed or available.');
+      throw const SpeechUnavailableException(
+          'Bengali TTS is not installed or available.');
     }
     _status = SpeechStatus.speaking;
     final result = await _engine.speak(message.text);
     if (result == 0) {
       _status = SpeechStatus.unavailable;
-      throw const SpeechUnavailableException('The platform TTS engine rejected speech.');
+      throw const SpeechUnavailableException(
+          'The platform TTS engine rejected speech.');
     }
     _status = SpeechStatus.ready;
   }

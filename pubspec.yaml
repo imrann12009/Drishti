@@ -24,6 +24,15 @@ dependencies:
   in_app_purchase: ^3.3.1
   speech_to_text: ^7.3.0
   url_launcher: ^6.3.1
+  # Remote, read-only release metadata. A Firebase project configuration is
+  # deliberately not committed to this repository.
+  firebase_core: ^3.15.2
+  cloud_firestore: ^5.6.12
+  package_info_plus: ^8.3.1
+  connectivity_plus: ^6.1.4
+  path_provider: ^2.1.5
+  crypto: ^3.0.6
+  in_app_update: ^4.2.3
 
 dev_dependencies:
   flutter_test:

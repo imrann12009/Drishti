@@ -30,6 +30,36 @@ Stages A–C are represented:
 
 No physical Raspberry Pi/sensor is connected in this workspace. The camera and 2-D ML Kit stream are implemented as Android adapters, but require a complete Android build and device validation. Depth estimation, live AI service configuration, live payment entitlement, firmware update, and subscription backend remain unavailable.
 
+## Android application updates
+
+The existing **আপডেট তথ্য** home card checks the read-only Firestore document
+`public_config/app_update`. It compares Android build numbers/version codes,
+shows a red badge only for a newer release with a valid delivery path, and
+keeps a cached configuration for offline use. Direct APK releases are HTTPS
+only and are rejected unless the APK checksum, package name, signer
+fingerprint, and version code all match the published configuration. Android's
+own installer always requires the user's confirmation.
+
+Firebase Android configuration is local at `android/app/google-services.json`
+and is Git-ignored. It does not contain an Admin SDK private key. Firestore
+rules and the secure release procedure are documented in
+[`docs/app-update-publishing.md`](docs/app-update-publishing.md).
+
+Verified on 2026-10-30:
+
+```sh
+/Users/imran/flutter/bin/flutter analyze  # No issues found
+/Users/imran/flutter/bin/flutter test     # 23 tests passed
+/Users/imran/flutter/bin/flutter build apk --debug
+```
+
+Debug APK output: `build/app/outputs/flutter-apk/app-debug.apk`.
+
+Production remains blocked until the release owner provides a real Firestore
+document, final Android package identity, production signing keystore/signer
+fingerprint, official immutable HTTPS APK hosting, and a signed physical-device
+installation test. No release signing configuration or credentials are faked.
+
 ## Toolchain prerequisite
 
 The project uses the Flutter SDK at `/Users/imran/flutter`. It is not on the shell PATH, so run it explicitly or add `/Users/imran/flutter/bin` to PATH. Android command-line tools/licenses are still incomplete according to `flutter doctor -v`.

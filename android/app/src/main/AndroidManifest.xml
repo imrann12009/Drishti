@@ -10,6 +10,9 @@
     <!-- Voice chat requests microphone access only when the user starts voice
          input. Camera capture itself remains video-free. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Android always asks the user to confirm a package installation. This
+         permission only allows DRISHTI to open that official settings page. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Do not inherit legacy external-storage permissions from CameraX. -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
@@ -39,6 +42,15 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updateprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/update_file_paths" />
+        </provider>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

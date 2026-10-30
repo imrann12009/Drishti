@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Only the app-private update directory is ever exposed to Android's
+         package installer, and only through a one-time read URI grant. -->
+    <files-path name="updates" path="updates/" />
+</paths>

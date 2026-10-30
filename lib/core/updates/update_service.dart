@@ -46,7 +46,8 @@ final class UnavailableUpdateService implements UpdateService {
       );
 
   @override
-  Future<UpdateApplyResult> apply(UpdatePackage package) async => const UpdateApplyResult(
+  Future<UpdateApplyResult> apply(UpdatePackage package) async =>
+      const UpdateApplyResult(
         status: UpdateApplyStatus.unavailable,
         message: 'Signed OTA delivery is not configured.',
       );

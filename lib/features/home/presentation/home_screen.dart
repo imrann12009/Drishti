@@ -5,6 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/persistence/preferences_repository.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/updates/update_configuration.dart';
+import '../../../core/updates/update_configuration_source.dart';
+import '../../../core/updates/update_manager.dart';
 import '../../vision/presentation/camera_screen.dart';
 import '../../chat/presentation/chat_screen.dart';
 import '../../device/presentation/device_connection_screen.dart';
@@ -12,6 +15,7 @@ import '../../help/presentation/help_screen.dart';
 import '../../navigation/application/navigation_controller.dart';
 import '../../navigation/domain/navigation_session.dart';
 import '../../settings/presentation/settings_screen.dart';
+import '../../updates/presentation/update_info_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,28 +24,49 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   late final NavigationController _controller;
+  late final UpdateManager _updateManager;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _controller = NavigationController()..addListener(_onControllerChanged);
+    _updateManager = UpdateManager(
+      source: FirestoreUpdateConfigurationSource(),
+    )..snapshot.addListener(_onUpdateChanged);
+    unawaited(_updateManager.check());
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller
       ..removeListener(_onControllerChanged)
       ..dispose();
+    _updateManager
+      ..snapshot.removeListener(_onUpdateChanged)
+      ..dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_updateManager.check(refresh: true));
+    }
   }
 
   void _onControllerChanged() {
     if (mounted) {
       setState(() {});
     }
+  }
+
+  void _onUpdateChanged() {
+    if (mounted) setState(() {});
   }
 
   void _startDemo() {
@@ -76,7 +101,12 @@ class _HomeScreenState extends State<HomeScreen> {
           MaterialPageRoute<void>(builder: (_) => const ChatScreen()),
         ),
         onOpenSettings: () => setState(() => _selectedIndex = 1),
-        onShowUpdateInfo: () => _showComingSoon(context, 'আপডেট ব্যবস্থা'),
+        updateSnapshot: _updateManager.snapshot.value,
+        onShowUpdateInfo: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => UpdateInfoScreen(manager: _updateManager),
+          ),
+        ),
       ),
       SettingsScreen(
         repository: SharedPreferencesRepository(SharedPreferencesAsync()),
@@ -125,14 +155,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showComingSoon(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text(
-              '$feature এখনো প্রস্তুত নয় — হার্ডওয়্যার আসার পর সংযোগ করা হবে।')),
-    );
-  }
-
   void _showAbout(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
@@ -174,6 +196,7 @@ class _DashboardContent extends StatelessWidget {
     required this.onOpenCamera,
     required this.onOpenChat,
     required this.onOpenSettings,
+    required this.updateSnapshot,
     required this.onShowUpdateInfo,
   });
 
@@ -190,6 +213,7 @@ class _DashboardContent extends StatelessWidget {
   final VoidCallback onOpenCamera;
   final VoidCallback onOpenChat;
   final VoidCallback onOpenSettings;
+  final UpdateSnapshot? updateSnapshot;
   final VoidCallback onShowUpdateInfo;
 
   @override
@@ -252,6 +276,7 @@ class _DashboardContent extends StatelessWidget {
           onAlerts: onOpenSettings,
           onEntitlements: onOpenSettings,
           onUpdates: onShowUpdateInfo,
+          updateSnapshot: updateSnapshot,
           onCamera: onOpenCamera,
           onChat: onOpenChat,
         ),
@@ -414,6 +439,7 @@ class _QuickActionGrid extends StatelessWidget {
     required this.onAlerts,
     required this.onEntitlements,
     required this.onUpdates,
+    required this.updateSnapshot,
     required this.onCamera,
     required this.onChat,
   });
@@ -422,6 +448,7 @@ class _QuickActionGrid extends StatelessWidget {
   final VoidCallback onAlerts;
   final VoidCallback onEntitlements;
   final VoidCallback onUpdates;
+  final UpdateSnapshot? updateSnapshot;
   final VoidCallback onCamera;
   final VoidCallback onChat;
 
@@ -447,9 +474,12 @@ class _QuickActionGrid extends StatelessWidget {
       ),
       itemBuilder: (context, index) {
         final (icon, label, onTap) = actions[index];
+        final updateAvailable = label == 'আপডেট তথ্য' &&
+            (updateSnapshot?.status == UpdateStatus.available ||
+                updateSnapshot?.status == UpdateStatus.required);
         return Semantics(
           button: true,
-          label: label,
+          label: updateAvailable ? '$label — নতুন আপডেট আছে' : label,
           child: Card(
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
@@ -460,7 +490,27 @@ class _QuickActionGrid extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(icon, color: AppTheme.blue, size: 30),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Icon(icon, color: AppTheme.blue, size: 30),
+                        if (updateAvailable)
+                          Positioned(
+                            top: -2,
+                            right: -5,
+                            child: Semantics(
+                              label: 'নতুন আপডেট পাওয়া গেছে',
+                              child: const DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: Color(0xFFB3261E),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: SizedBox(width: 12, height: 12),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     Text(label, style: Theme.of(context).textTheme.titleMedium),
                   ],

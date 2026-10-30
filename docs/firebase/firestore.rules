@@ -1,0 +1,19 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // The mobile application may only read the single published release record.
+    match /public_config/app_update {
+      allow get: if true;
+      allow list: if false;
+      allow create, update, delete: if false;
+    }
+
+    // All other documents are denied by default. Release publishing must use a
+    // trusted server/CI identity with Firebase Admin SDK credentials, not an
+    // authenticated Flutter client.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
